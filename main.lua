@@ -20,7 +20,8 @@ ffi = require 'ffi'
 ffi.cdef[[
 void hello();
 bool is_odd(unsigned int number);
-const char * print_and_return(const char *string);
+char * print_and_return(const char *string);
+void free_c_owned_string(char *string);
 void print(const char *string);
 ]]
 
@@ -36,5 +37,8 @@ print('Is 1 odd? ' .. tostring(loverust.is_odd(1)))
 local cstring = loverust.print_and_return("💖plswork")
 local luaSting = ffi.string(cstring)
 print('It worked! ' .. luaSting)
+loverust.free_c_owned_string(cstring)
+print('And no memory leak!')
 
+print('We still have the lua string from Rust')
 loverust.print(luaSting)
