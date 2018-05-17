@@ -1,8 +1,14 @@
-//extern crate libc;
+extern crate libc;
+
+use libc::uint32_t;
+use libc::size_t;
+
+use std::fmt;
+
+use std::slice;
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::os::raw::c_char;
-
 
 #[no_mangle]
 pub extern fn hello() {
@@ -34,16 +40,10 @@ pub extern fn print(cstring: *const c_char) {
  */
 fn to_rust_string(c_string_pointer: *const c_char) -> String {
     unsafe {
+        assert!(!c_string_pointer.is_null());
+
         CStr::from_ptr(c_string_pointer).to_string_lossy().into_owned()
     }
-}
-
-/*
- * Creates a C string pointer from a Rust String
- */
-fn to_c_string(rust_string: &str) -> *const c_char {
-    let cstring = CString::new(rust_string).unwrap(); // todo avoid unwrap
-    cstring.as_ptr()
 }
 
 /*
@@ -64,6 +64,10 @@ fn to_c_owned_string(rust_string: String) -> *mut c_char {
 #[no_mangle]
 pub extern fn free_c_owned_string(pointer: *mut c_char) {
     unsafe {
+        if pointer.is_null() {
+            eprintln!("Expected to recieve non null pointer to free");
+            return;
+        }
         // retake pointer to free memory
         let _ = CString::from_raw(pointer);
     }
@@ -79,51 +83,52 @@ pub extern fn print_and_return(c_string_pointer: *const c_char) -> *mut c_char {
     return to_c_owned_string(rust_string)
 }
 
-//
-// unsafe {
-//     let slice = CStr::from_ptr(c_string_pointer);
-//     // convert it to a rust &str
-//     let rust_str = slice.to_str().unwrap(); // todo avoid unwrapping
-//     println!("string returned: {}", rust_str);
-//     // create a rust String
-//     let mut rust_string = String::from(rust_str);
-//     // modify the rust String
-//     rust_string.push('💖');
-//     println!("string now: {}", rust_string);
-//     // we need to return a CString pointer and not a rust String
-//     let cstring = CString::new(rust_string).unwrap(); // todo avoid unwrapping
-//     return (&cstring).as_ptr()
-// }
+#[no_mangle]
+pub extern fn add_two_numbers(x: uint32_t, y: uint32_t) -> uint32_t {
+    x + y
+}
 
-//
-// #[no_mangle]
-// pub extern fn rust_multiply(size: libc::size_t, array_pointer: *const libc::int16_t)
-// -> libc::int16_t {
-//     println!("Got to here");
-//     internal_rust_multiply(unsafe {
-//         std::slice::from_raw_parts(array_pointer as *const i16, size as usize)
-//     }) as libc::int16_t
-// }
-//
-// fn internal_rust_multiply(array: &[i16]) -> i16 {
-//     println!("Got to safe rust");
-//     assert!(!array.is_empty());
-//     println!("The array is {:?}", array); // causes seg fault
-//     println!("Now leaving safe rust");
-//     array[0]
-// }
-//
-//
-// #[no_mangle]
-// pub extern fn unit_vector(array_pointer: *)
-//
-// #[no_mangle]
-// pub extern fn unit_vector(mut vector: Vec<f32>) -> bool {
-//     let length = vector.len() as f32;
-//     println!("The vector before '{:?}'", vector);
-//     for x in vector.iter_mut() {
-//         *x /= length;
-//     }
-//     println!("The vector after '{:?}'", vector);
-//     return true
-// }
+
+#[no_mangle]
+pub extern fn print_array(c_array_pointer: *const uint32_t, length: size_t) {
+    let array_slice = unsafe {
+        assert!(!c_array_pointer.is_null());
+
+        slice::from_raw_parts(c_array_pointer, length as usize)
+    };
+    println!("{:?}", array_slice);
+}
+
+/*
+ * A struct that can be passed between C and Rust
+ */
+#[repr(C)]
+pub struct Vector2 {
+    x: uint32_t,
+    y: uint32_t,
+}
+
+/*
+ * Display implementation for easy viewing
+ */
+impl fmt::Display for Vector2 {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.write_str("{")?;
+        fmt.write_str(&self.x.to_string())?;
+        fmt.write_str(", ")?;
+        fmt.write_str(&self.y.to_string())?;
+        fmt.write_str("}")?;
+        Ok(())
+    }
+}
+
+#[no_mangle]
+pub extern fn vector2_swap(vector2: Vector2) -> Vector2 {
+    println!("Before {}", vector2);
+    let swapped = Vector2 {
+        x: vector2.y,
+        y: vector2.x
+    };
+    println!("After {}", swapped);
+    swapped
+}

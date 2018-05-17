@@ -8,7 +8,11 @@ What works
 - calling Rust functions with no return type or no arguments
 - passing numbers to and back from Rust
 - Passing strings to and back from Rust
+- recieving arrays in Rust
+- passing custom structs to and back from Rust (should be able to extend much further)
 
 What does not yet work
-- passing arrays to and back from Rust
+- passing arrays from C to Rust and modifying them rather than returning
+- passing [arrays](https://stackoverflow.com/questions/49591678/is-it-possible-to-pass-arrays-from-rust-to-c) back from Rust to C
+- passing [Rust objects](http://jakegoulding.com/rust-ffi-omnibus/objects/) to C and back (should be able to use lua on Rust datatypes at this point)
 - passing arbitrary lua tables to and back from Rust
