@@ -17,12 +17,17 @@ pub struct PongGameState {
     score: (u32, u32),
 }
 
+const PADDLE_HEIGHT: u32 = 150;
+const GAME_WIDTH: u32 = 1500;
+const GAME_HEIGHT: u32 = 1000;
+const PADDLE_GAP: u32 = 50;
+
 impl PongGameState {
     fn new() -> PongGameState {
         PongGameState {
-            pong_ball: (500, 500),
-            left_player: 500,
-            right_player: 500,
+            pong_ball: (GAME_WIDTH/2, GAME_HEIGHT/2),
+            left_player: GAME_HEIGHT/2,
+            right_player: GAME_HEIGHT/2,
             speed: 10,
             direction: (1, -1),
             score: (0, 0),
@@ -35,27 +40,24 @@ impl PongGameState {
      */
     fn update(&mut self, left_up: bool, left_down: bool, right_up: bool, right_down: bool) {
         // move paddles
-        // each paddle has a height of 150 units (out of 1000)
-        // the game is 1500 units wide
-        // each paddle is 50 units from the side
         for _ in 0..12 {
             if left_up && !left_down {
-                if self.left_player < (1000-75) {
+                if self.left_player < (GAME_HEIGHT-(PADDLE_HEIGHT/2)) {
                     self.left_player += 1;
                 }
             }
             if left_down && !left_up {
-                if self.left_player > 75 {
+                if self.left_player > PADDLE_HEIGHT/2 {
                     self.left_player -= 1;
                 }
             }
             if right_up && !right_down {
-                if self.right_player < (1000-75) {
+                if self.right_player < (GAME_HEIGHT-(PADDLE_HEIGHT/2)) {
                     self.right_player += 1;
                 }
             }
             if right_down && !right_up {
-                if self.right_player > 75 {
+                if self.right_player > PADDLE_HEIGHT/2 {
                     self.right_player -= 1;
                 }
             }
@@ -64,33 +66,33 @@ impl PongGameState {
             // update the ball
             let (mut x, mut y) = self.pong_ball;
             let (mut dx, mut dy) = self.direction;
-            if dx > 0 && x < 1500 {
+            if dx > 0 && x < GAME_WIDTH {
                 x += 1;
             }
             if dx < 0 && x > 0 {
                 x -= 1;
             }
-            if dy > 0 && y < 1000 {
+            if dy > 0 && y < GAME_HEIGHT {
                 y += 1;
             }
             if dy < 0 && y > 0 {
                 y -= 1;
             }
-            if x == 1500 {
+            if x == GAME_WIDTH {
                 dx = -1;
-                x = 1400;
-                y = 500;
+                x = GAME_WIDTH - 100;
+                y = GAME_HEIGHT/2;
                 self.speed = 10;
                 self.score = (self.score.0 + 1, self.score.1)
             }
             if x == 0 {
                 dx = 1;
                 x = 100;
-                y = 500;
+                y = GAME_HEIGHT/2;
                 self.speed = 10;
                 self.score = (self.score.0, self.score.1 + 1)
             }
-            if y == 1000 {
+            if y == GAME_HEIGHT {
                 dy = -1;
             }
             if y == 0 {
@@ -123,16 +125,18 @@ impl PongGameState {
 
     fn left_player_hit(&self) -> bool {
         let (x, y) = self.pong_ball;
-        if x == 50 {
-            return ((self.left_player + 75) >= y) && ((self.left_player - 75) <= y)
+        let paddle = self.left_player;
+        if x == PADDLE_GAP {
+            return ((paddle + PADDLE_HEIGHT/2) >= y) && ((paddle - PADDLE_HEIGHT/2) <= y)
         }
         false
     }
 
     fn right_player_hit(&self) -> bool {
         let (x, y) = self.pong_ball;
-        if x == 1450 {
-            return ((self.right_player + 75) >= y) && ((self.right_player - 75) <= y)
+        let paddle = self.right_player;
+        if x == (GAME_WIDTH - PADDLE_GAP) {
+            return ((paddle + PADDLE_HEIGHT/2) >= y) && ((paddle - PADDLE_HEIGHT/2) <= y)
         }
         false
     }
