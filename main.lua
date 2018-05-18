@@ -48,12 +48,13 @@ function love.load()
 end
 
 function love.update()
+  local bx, by = pong:pongBall()
   pong:update({
     up = love.keyboard.isDown("w"),
     down = love.keyboard.isDown("s"),
   }, {
-    up = love.keyboard.isDown("up"),
-    down = love.keyboard.isDown("down"),
+    up = pong:rightPlayer() < by,
+    down = pong:rightPlayer() > by,
   })
 end
 
