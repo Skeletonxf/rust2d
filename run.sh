@@ -1,3 +1,6 @@
-#!/bin/sh
-cargo build --release
-love .
+#!/bin/bash
+if cargo build --release ; then
+  love .
+else
+  echo "Build failed"
+fi
