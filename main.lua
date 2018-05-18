@@ -1,40 +1,89 @@
 ffi = require 'ffi'
 
 ffi.cdef[[
-void hello();
-bool is_odd(unsigned int number);
-char * print_and_return(const char *string);
-void free_c_owned_string(char *string);
-void print(const char *string);
-uint32_t add_two_numbers(uint32_t, uint32_t);
-void print_array(const uint32_t *array, size_t length);
-// mirror the rust Vector2 struct definition
-typedef struct vector2 {
-  uint32_t x;
-  uint32_t y;
-} vector2_t;
-vector2_t vector2_swap(vector2_t);
+typedef struct pong_game_S pong_game_t;
+pong_game_t * pong_game_new();
+void pong_game_free(pong_game_t *);
+void pong_game_update(pong_game_t *, bool left_up, bool left_down, bool right_up, bool right_down);
+uint32_t pong_game_get_left_player(pong_game_t *);
+uint32_t pong_game_get_right_player(pong_game_t *);
+uint32_t pong_game_get_pong_ball_x(pong_game_t *);
+uint32_t pong_game_get_pong_ball_y(pong_game_t *);
+uint32_t pong_game_get_left_player_score(pong_game_t *);
+uint32_t pong_game_get_right_player_score(pong_game_t *);
 ]]
 
-loverust = ffi.load('./target/release/libloverust.so')
+local loverust = ffi.load('./target/release/libloverust.so')
 
-loverust.hello()
-print('Is 1 odd? ' .. tostring(loverust.is_odd(1)))
+local pong = {}
+local Pong = {}
+Pong.__index = Pong
+function Pong.leftPlayer(self)
+  return loverust.pong_game_get_left_player(self.pong)
+end
+function Pong.rightPlayer(self)
+  return loverust.pong_game_get_right_player(self.pong)
+end
+function Pong.pongBall(self)
+  local x = loverust.pong_game_get_pong_ball_x(self.pong)
+  local y = loverust.pong_game_get_pong_ball_y(self.pong)
+  return x, y
+end
+function Pong.score(self)
+  local x = loverust.pong_game_get_left_player_score(self.pong)
+  local y = loverust.pong_game_get_right_player_score(self.pong)
+  return x, y
+end
+function Pong.free(self)
+  loverust.pong_game_free(self.pong)
+  self.pong = nil
+end
+function Pong.update(self, left, right)
+  loverust.pong_game_update(self.pong, left.up, left.down, right.up, right.down)
+end
+setmetatable(pong, Pong)
 
-local cstring = loverust.print_and_return("💖plswork")
-local luaSting = ffi.string(cstring)
-print('It worked! ' .. luaSting)
-loverust.free_c_owned_string(cstring)
-print('And no memory leak!')
+function love.load()
+  pong.pong = loverust.pong_game_new()
+end
 
-print('We still have the lua string from Rust')
-loverust.print(luaSting)
+function love.update()
+  pong:update({
+    up = love.keyboard.isDown("w"),
+    down = love.keyboard.isDown("s"),
+  }, {
+    up = love.keyboard.isDown("up"),
+    down = love.keyboard.isDown("down"),
+  })
+end
 
-print('Addition ' .. loverust.add_two_numbers(1, 2))
+local font = love.graphics.getFont()
 
-local carray = ffi.new("int[3]", {1,2,3})
-print('Rust inspection of c array:')
-loverust.print_array(carray, 3)
-
-local vector2 = ffi.new("struct vector2", {1, 2})
-local swapped = loverust.vector2_swap(vector2)
+function love.draw()
+  local window = {
+    w = love.graphics.getWidth(),
+    h = love.graphics.getHeight(),
+  }
+  local paddleHalfHeight = 75/1000 * window.h
+  local leftPlayer = {
+    x = (50/1500) * window.w,
+    y = (1 - (pong:leftPlayer()/1000)) * window.h,
+    h = paddleHalfHeight,
+  }
+  love.graphics.line(leftPlayer.x, leftPlayer.y - leftPlayer.h, leftPlayer.x, leftPlayer.y + leftPlayer.h)
+  local rightPlayer = {
+    x = (1450/1500) * window.w,
+    y = (1 - (pong:rightPlayer()/1000)) * window.h,
+    h = paddleHalfHeight,
+  }
+  love.graphics.line(rightPlayer.x, rightPlayer.y - rightPlayer.h, rightPlayer.x, rightPlayer.y + rightPlayer.h)
+  local bx, by = pong:pongBall()
+  local pongBall = {
+    x = (bx/1500) * window.w,
+    y = (1 - (by/1000)) * window.h,
+  }
+  love.graphics.circle('line', pongBall.x, pongBall.y, 5)
+  local p1, p2 = pong:score()
+  local score = tostring(p1) .. ' : ' .. tostring(p2)
+  love.graphics.print(score, window.w/2, 0, 0, 1, 1, font:getWidth(score)/2)
+end

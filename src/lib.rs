@@ -10,6 +10,8 @@ use std::ffi::CStr;
 use std::ffi::CString;
 use std::os::raw::c_char;
 
+pub mod pong;
+
 #[no_mangle]
 pub extern fn hello() {
     println!("Hello from rust");
