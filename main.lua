@@ -1,4 +1,4 @@
-ffi = require 'ffi'
+local ffi = require 'ffi'
 
 ffi.cdef[[
 void hello();
@@ -17,6 +17,8 @@ vector2_t vector2_swap(vector2_t);
 ]]
 
 loverust = ffi.load('./target/release/libloverust.so')
+
+local arrays = require 'src.arrays'
 
 loverust.hello()
 print('Is 1 odd? ' .. tostring(loverust.is_odd(1)))
@@ -38,3 +40,10 @@ loverust.print_array(carray, 3)
 
 local vector2 = ffi.new("struct vector2", {1, 2})
 local swapped = loverust.vector2_swap(vector2)
+
+print((ffi.new("int[3]", {1,4,9}))[0])
+
+local array = arrays.new(loverust.generate_array())
+print(array)
+array:free()
+array = nil
