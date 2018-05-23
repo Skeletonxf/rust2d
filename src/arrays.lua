@@ -39,7 +39,7 @@ function Array.length(self)
   if not self.struct then
     error('No struct to query', 2, debug.traceback())
   end
-  return self.struct.length
+  return tonumber(self.struct.length)
 end
 
 function Array.get(self, i)
