@@ -2,6 +2,9 @@ extern crate libc;
 
 use libc::uint32_t;
 
+use arrays;
+use arrays::Array;
+
 pub struct PongGameState {
     // x and y coordinates of pong ball
     pong_ball: (u32, u32),
@@ -15,6 +18,7 @@ pub struct PongGameState {
     direction: (i8, i8),
     // the score for each player
     score: (u32, u32),
+    trail: Vec<(u32, u32)>,
 }
 
 const PADDLE_HEIGHT: u32 = 150;
@@ -31,6 +35,7 @@ impl PongGameState {
             speed: 10,
             direction: (1, -1),
             score: (0, 0),
+            trail: vec![],
         }
     }
 
@@ -83,14 +88,16 @@ impl PongGameState {
                 x = GAME_WIDTH - 100;
                 y = GAME_HEIGHT/2;
                 self.speed = 10;
-                self.score = (self.score.0 + 1, self.score.1)
+                self.score = (self.score.0 + 1, self.score.1);
+                self.trail = vec![];
             }
             if x == 0 {
                 dx = 1;
                 x = 100;
                 y = GAME_HEIGHT/2;
                 self.speed = 10;
-                self.score = (self.score.0, self.score.1 + 1)
+                self.score = (self.score.0, self.score.1 + 1);
+                self.trail = vec![];
             }
             if y == GAME_HEIGHT {
                 dy = -1;
@@ -100,25 +107,26 @@ impl PongGameState {
             }
             if self.left_player_hit() {
                 dx = 1;
-                if y > (self.left_player + 50) {
+                if y > (self.left_player + PADDLE_HEIGHT/6) {
                     dy = 1;
                 }
-                if y < (self.left_player - 50) {
+                if y < (self.left_player - PADDLE_HEIGHT/6) {
                     dy = -1;
                 }
                 self.speed += 1;
             }
             if self.right_player_hit() {
                 dx = -1;
-                if y > (self.right_player + 50) {
+                if y > (self.right_player + PADDLE_HEIGHT/6) {
                     dy = 1;
                 }
-                if y < (self.right_player - 50) {
+                if y < (self.right_player - PADDLE_HEIGHT/6) {
                     dy = -1;
                 }
                 self.speed += 1;
             }
             self.pong_ball = (x, y);
+            self.trail.push(self.pong_ball);
             self.direction = (dx, dy);
         }
     }
@@ -156,6 +164,14 @@ impl PongGameState {
     fn score(&self) -> (u32, u32) {
         self.score
     }
+
+    fn pong_trail_x(&self) -> Array {
+        arrays::array_from_vector(self.trail.iter().map(|&c| c.0).collect())
+    }
+
+    fn pong_trail_y(&self) -> Array {
+        arrays::array_from_vector(self.trail.iter().map(|&c| c.1).collect())
+    }
 }
 
 #[no_mangle]
@@ -183,6 +199,24 @@ pub extern fn pong_game_update(pointer: *mut PongGameState,
         &mut *pointer
     };
     pong_game.update(left_up, left_down, right_up, right_down);
+}
+
+#[no_mangle]
+pub extern fn pong_game_get_trail_x(pointer: *mut PongGameState) -> Array {
+    let pong_game = unsafe {
+        assert!(!pointer.is_null());
+        &mut *pointer
+    };
+    pong_game.pong_trail_x()
+}
+
+#[no_mangle]
+pub extern fn pong_game_get_trail_y(pointer: *mut PongGameState) -> Array {
+    let pong_game = unsafe {
+        assert!(!pointer.is_null());
+        &mut *pointer
+    };
+    pong_game.pong_trail_y()
 }
 
 #[no_mangle]

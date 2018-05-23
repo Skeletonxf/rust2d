@@ -13,7 +13,14 @@ uint32_t pong_game_get_left_player_score(pong_game_t *);
 uint32_t pong_game_get_right_player_score(pong_game_t *);
 ]]
 
-local loverust = ffi.load('./target/release/libloverust.so')
+loverust = ffi.load('./target/release/libloverust.so')
+
+local arrays = require 'src.arrays'
+
+ffi.cdef[[
+array_t pong_game_get_trail_x(pong_game_t *);
+array_t pong_game_get_trail_y(pong_game_t *);
+]]
 
 local pong = {}
 local Pong = {}
@@ -38,6 +45,28 @@ function Pong.free(self)
   loverust.pong_game_free(self.pong)
   self.pong = nil
 end
+function Pong.trail(self)
+  -- get the two arrays from the pong game
+  local trail = {
+    x = arrays.new(loverust.pong_game_get_trail_x(self.pong)),
+    y = arrays.new(loverust.pong_game_get_trail_y(self.pong)),
+  }
+  -- copy them into the trail table array portion
+  local length = trail.x:length()
+  for i = 0, (length - 1) do
+    trail[i+1] = {
+      x = trail.x:get(i),
+      y = trail.y:get(i),
+    }
+  end
+  -- free the array structs
+  trail.x:free()
+  trail.y:free()
+  -- cache the length
+  trail.length = #trail
+  -- return the table of tables of coordinates
+  return trail
+end
 function Pong.update(self, left, right)
   loverust.pong_game_update(self.pong, left.up, left.down, right.up, right.down)
 end
@@ -60,7 +89,10 @@ end
 
 local font = love.graphics.getFont()
 
+local draw = {}
+
 function love.draw()
+  love.graphics.setColor(1, 1, 1, 1)
   local window = {
     w = love.graphics.getWidth(),
     h = love.graphics.getHeight(),
@@ -79,12 +111,23 @@ function love.draw()
   }
   love.graphics.line(rightPlayer.x, rightPlayer.y - rightPlayer.h, rightPlayer.x, rightPlayer.y + rightPlayer.h)
   local bx, by = pong:pongBall()
+  draw.ball(bx, by, 5, window)
+  local p1, p2 = pong:score()
+  local score = tostring(p1) .. ' : ' .. tostring(p2)
+  love.graphics.print(score, window.w/2, 0, 0, 1, 1, font:getWidth(score)/2)
+  local trail = pong:trail()
+  for k, b in ipairs(trail) do
+    love.graphics.setColor(1, 1, 1, math.max(0.95 - 0.005*(trail.length-k), 0.01))
+    draw.ball(b.x, b.y, 3, window)
+  end
+end
+
+-- converts from pong game coordinates of the pong ball to screen ones
+-- and draws at this location
+function draw.ball(bx, by, size, window)
   local pongBall = {
     x = (bx/1500) * window.w,
     y = (1 - (by/1000)) * window.h,
   }
-  love.graphics.circle('line', pongBall.x, pongBall.y, 5)
-  local p1, p2 = pong:score()
-  local score = tostring(p1) .. ' : ' .. tostring(p2)
-  love.graphics.print(score, window.w/2, 0, 0, 1, 1, font:getWidth(score)/2)
+  love.graphics.circle('line', pongBall.x, pongBall.y, size)
 end
