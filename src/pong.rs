@@ -19,12 +19,14 @@ pub struct PongGameState {
     // the score for each player
     score: (u32, u32),
     trail: Vec<(u32, u32)>,
+    right_player_ai_target: Option<u32>,
 }
 
 const PADDLE_HEIGHT: u32 = 150;
 const GAME_WIDTH: u32 = 1500;
 const GAME_HEIGHT: u32 = 1000;
 const PADDLE_GAP: u32 = 50;
+const MAX_TRAIL_LENGTH: usize = 10000;
 
 impl PongGameState {
     fn new() -> PongGameState {
@@ -36,6 +38,7 @@ impl PongGameState {
             direction: (1, -1),
             score: (0, 0),
             trail: vec![],
+            right_player_ai_target: None,
         }
     }
 
@@ -126,37 +129,54 @@ impl PongGameState {
                 self.speed += 1;
             }
             self.pong_ball = (x, y);
+            if self.trail.len() > MAX_TRAIL_LENGTH {
+                // possibly an Array was not the smartest data type for something
+                // which should have O(1) appending to the end
+                // and O(1) truncating the start
+                // but this still prevents the game incresing in memory usage
+                // indefintely if the player moves into a safe spot
+                // which is probably worse
+                self.trail.remove(0);
+            }
             self.trail.push(self.pong_ball);
             self.direction = (dx, dy);
         }
     }
 
     // returns target y for the right player as a basic AI
-    fn right_player_ai(&self) -> u32 {
+    fn right_player_ai(&mut self) -> u32 {
         let (x, y) = self.pong_ball;
         let (dx, dy) = self.direction;
         if dx > 0 {
-            let mut x = x;
-            let mut y = y;
-            let mut dy = dy;
-            // model the ball physics up to where the paddle needs to be
-            while x < (GAME_WIDTH - PADDLE_GAP) {
-                x += 1;
-                if dy > 0 && y < GAME_HEIGHT {
-                    y += 1;
-                }
-                if dy < 0 && y > 0 {
-                    y -= 1;
-                }
-                if y == GAME_HEIGHT {
-                    dy = -1;
-                }
-                if y == 0 {
-                    dy = 1;
+            // cache this prediction so it doesn't need to be re calculated each frame
+            match self.right_player_ai_target {
+                Some(y) => return y,
+                None => {
+                    let mut x = x;
+                    let mut y = y;
+                    let mut dy = dy;
+                    // model the ball physics up to where the paddle needs to be
+                    while x < (GAME_WIDTH - PADDLE_GAP) {
+                        x += 1;
+                        if dy > 0 && y < GAME_HEIGHT {
+                            y += 1;
+                        }
+                        if dy < 0 && y > 0 {
+                            y -= 1;
+                        }
+                        if y == GAME_HEIGHT {
+                            dy = -1;
+                        }
+                        if y == 0 {
+                            dy = 1;
+                        }
+                    }
+                    self.right_player_ai_target = Some(y);
+                    return y
                 }
             }
-            return y
         } else {
+            self.right_player_ai_target = None;
             return GAME_HEIGHT/2
         }
     }
