@@ -43,9 +43,9 @@ function Pong.pongBall(self)
   return x, y
 end
 function Pong.score(self)
-  local x = loverust.pong_game_get_left_player_score(self.pong)
-  local y = loverust.pong_game_get_right_player_score(self.pong)
-  return x, y
+  local p1 = loverust.pong_game_get_left_player_score(self.pong)
+  local p2 = loverust.pong_game_get_right_player_score(self.pong)
+  return p1, p2
 end
 function Pong.free(self)
   loverust.pong_game_free(self.pong)
@@ -85,16 +85,31 @@ function Pong.ai(self)
 end
 setmetatable(pong, Pong)
 
+local music = nil
+
 function love.load()
   pong.pong = loverust.pong_game_new()
+
+  print("The audio track EzaOne - Supernova [Creative Commons] by Argofox is licensed under a Creative Commons License")
+  print('EzaOne - Supernova: youtu.be/xZDYu5azS-c')
+  music = love.audio.newSource("assets/Supernova.ogg", "stream")
+  music:play()
 end
 
 function love.update()
   local bx, by = pong:pongBall()
+  local _, scoreBefore = pong:score()
+
   pong:update({
     up = love.keyboard.isDown("w"),
     down = love.keyboard.isDown("s"),
   }, pong:ai())
+
+  -- reset the music on the player losing a point
+  local _, scoreAfter =  pong:score()
+  if scoreAfter > scoreBefore then
+    music:seek(0.1)
+  end
 end
 
 local font = love.graphics.getFont()
