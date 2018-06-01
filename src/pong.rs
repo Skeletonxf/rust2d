@@ -131,6 +131,36 @@ impl PongGameState {
         }
     }
 
+    // returns target y for the right player as a basic AI
+    fn right_player_ai(&self) -> u32 {
+        let (x, y) = self.pong_ball;
+        let (dx, dy) = self.direction;
+        if dx > 0 {
+            let mut x = x;
+            let mut y = y;
+            let mut dy = dy;
+            // model the ball physics up to where the paddle needs to be
+            while x < (GAME_WIDTH - PADDLE_GAP) {
+                x += 1;
+                if dy > 0 && y < GAME_HEIGHT {
+                    y += 1;
+                }
+                if dy < 0 && y > 0 {
+                    y -= 1;
+                }
+                if y == GAME_HEIGHT {
+                    dy = -1;
+                }
+                if y == 0 {
+                    dy = 1;
+                }
+            }
+            return y
+        } else {
+            return GAME_HEIGHT/2
+        }
+    }
+
     fn left_player_hit(&self) -> bool {
         let (x, y) = self.pong_ball;
         let paddle = self.left_player;
@@ -271,4 +301,13 @@ pub extern fn pong_game_get_right_player_score(pointer: *mut PongGameState) -> u
         &mut *pointer
     };
     pong_game.score().1
+}
+
+#[no_mangle]
+pub extern fn pong_game_get_right_player_ai_move(pointer: *mut PongGameState) -> uint32_t {
+    let pong_game = unsafe {
+        assert!(!pointer.is_null());
+        &mut *pointer
+    };
+    pong_game.right_player_ai()
 }

@@ -11,6 +11,7 @@ uint32_t pong_game_get_pong_ball_x(pong_game_t *);
 uint32_t pong_game_get_pong_ball_y(pong_game_t *);
 uint32_t pong_game_get_left_player_score(pong_game_t *);
 uint32_t pong_game_get_right_player_score(pong_game_t *);
+uint32_t pong_game_get_right_player_ai_move(pong_game_t *);
 ]]
 
 loverust = ffi.load('./target/release/libloverust.so')
@@ -21,6 +22,11 @@ ffi.cdef[[
 array_t pong_game_get_trail_x(pong_game_t *);
 array_t pong_game_get_trail_y(pong_game_t *);
 ]]
+
+local GAME_WIDTH = 1500
+local GAME_HEIGHT = 1000
+local PADDLE_GAP = 50
+local PADDLE_HEIGHT = 150
 
 local pong = {}
 local Pong = {}
@@ -70,6 +76,13 @@ end
 function Pong.update(self, left, right)
   loverust.pong_game_update(self.pong, left.up, left.down, right.up, right.down)
 end
+function Pong.ai(self)
+  local y = loverust.pong_game_get_right_player_ai_move(self.pong)
+  return {
+    up = pong:rightPlayer() < (y - PADDLE_HEIGHT/3),
+    down = pong:rightPlayer() > (y + PADDLE_HEIGHT/3),
+  }
+end
 setmetatable(pong, Pong)
 
 function love.load()
@@ -81,10 +94,7 @@ function love.update()
   pong:update({
     up = love.keyboard.isDown("w"),
     down = love.keyboard.isDown("s"),
-  }, {
-    up = pong:rightPlayer() < by,
-    down = pong:rightPlayer() > by,
-  })
+  }, pong:ai())
 end
 
 local font = love.graphics.getFont()
