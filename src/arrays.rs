@@ -1,17 +1,20 @@
 extern crate libc;
 
-use libc::uint32_t;
 use libc::size_t;
+
+// Same precision as Lua number (double)
+// also the same as libc::c_double;
+type LuaNumber = f64;
 
 use std;
 
-/*
+/**
  * A struct that can be mirrored in C to facilitate returning arrays to C
  * that can then be indexed freely via Lua as cdata.
  */
 #[repr(C)]
 pub struct Array {
-    data: *mut uint32_t,
+    data: *mut LuaNumber,
     length: size_t,
 }
 
@@ -24,15 +27,21 @@ pub extern fn free_array(array: Array) {
     }
 }
 
-#[no_mangle]
-pub extern fn generate_array() -> Array {
-    let mut data = vec![1,4,3,8];
+/**
+ * Converts a Rust Vec to an Array to pass through FFI
+ */
+pub fn vec_to_array(mut data: Vec<LuaNumber>) -> Array {
     let array = Array {
         data: data.as_mut_ptr(),
-        length: 4
+        length: data.len(),
     };
     // forget about the Vec so it is not dropped
     // at the end of this function
     std::mem::forget(data);
     array
+}
+
+#[no_mangle]
+pub extern fn generate_array() -> Array {
+    vec_to_array(vec![1.0f64, 4.0f64, 3.0f64, 8.0f64])
 }

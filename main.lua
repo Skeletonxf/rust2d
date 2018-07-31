@@ -47,3 +47,16 @@ local array = arrays.new(loverust.generate_array())
 print(array)
 array:free()
 array = nil
+
+local complicatedTable = {
+  1,2,4,
+  foo = 'bar',
+  foobar = {
+    1, 6, 'baz', foobaz = {
+      4, 'bazfoo'
+    }
+  }
+}
+
+local tables = require 'src.tables'
+tables.export(complicatedTable)

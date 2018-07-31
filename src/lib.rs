@@ -12,6 +12,8 @@ use std::os::raw::c_char;
 
 pub mod arrays;
 
+pub mod tables;
+
 #[no_mangle]
 pub extern fn hello() {
     println!("Hello from rust");

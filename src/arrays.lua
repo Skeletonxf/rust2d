@@ -15,7 +15,7 @@ local loverust = require 'src.loverust'
 ffi.cdef[[
 // wrapper around an array for recieving from rust functions
 typedef struct array {
-  uint32_t * data;
+  double * data;
   size_t length;
 } array_t;
 void free_array(array_t);
@@ -56,11 +56,11 @@ function Array.free(self)
   -- call Rust to free the vector held in the struct
   -- and then nil the fields in this wrapper
   loverust.free_array(self.struct)
-  array = {}
+  self = {}
 end
 
 function Array.__tostring(self)
-  local s = '['
+  local s = 'CArray['
   local i = 0
   while i < (self:length()) do
     s = s .. tostring(self:get(i))
