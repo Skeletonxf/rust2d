@@ -16,7 +16,7 @@ typedef struct vector2 {
 vector2_t vector2_swap(vector2_t);
 ]]
 
-loverust = ffi.load('./target/release/libloverust.so')
+local loverust = require 'src.loverust'
 
 local arrays = require 'src.arrays'
 
