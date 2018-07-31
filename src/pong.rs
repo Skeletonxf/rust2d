@@ -5,6 +5,19 @@ use libc::uint32_t;
 use arrays;
 use arrays::Array;
 
+// These mirror the settings in the Rust code for the game
+// In a larger project the settings should be defined once and
+// read by both languages (possibly in a lua table and read by Rust
+// using a Lua crate)
+const PADDLE_HEIGHT: u32 = 150;
+const GAME_WIDTH: u32 = 1500;
+const GAME_HEIGHT: u32 = 1000;
+const PADDLE_GAP: u32 = 50;
+const MAX_TRAIL_LENGTH: usize = 10000;
+
+const STARTING_BALL_SPEED: u32 = 10;
+const BALL_SPEED_UP: u32 = 1;
+
 pub struct PongGameState {
     // x and y coordinates of pong ball
     pong_ball: (u32, u32),
@@ -22,19 +35,13 @@ pub struct PongGameState {
     right_player_ai_target: Option<u32>,
 }
 
-const PADDLE_HEIGHT: u32 = 150;
-const GAME_WIDTH: u32 = 1500;
-const GAME_HEIGHT: u32 = 1000;
-const PADDLE_GAP: u32 = 50;
-const MAX_TRAIL_LENGTH: usize = 10000;
-
 impl PongGameState {
     fn new() -> PongGameState {
         PongGameState {
             pong_ball: (GAME_WIDTH/2, GAME_HEIGHT/2),
             left_player: GAME_HEIGHT/2,
             right_player: GAME_HEIGHT/2,
-            speed: 10,
+            speed: STARTING_BALL_SPEED,
             direction: (1, -1),
             score: (0, 0),
             trail: vec![],
@@ -90,7 +97,7 @@ impl PongGameState {
                 dx = -1;
                 x = GAME_WIDTH - 100;
                 y = GAME_HEIGHT/2;
-                self.speed = 10;
+                self.speed = STARTING_BALL_SPEED;
                 self.score = (self.score.0 + 1, self.score.1);
                 self.trail = vec![];
             }
@@ -116,7 +123,7 @@ impl PongGameState {
                 if y < (self.left_player - PADDLE_HEIGHT/6) {
                     dy = -1;
                 }
-                self.speed += 1;
+                self.speed += BALL_SPEED_UP;
             }
             if self.right_player_hit() {
                 dx = -1;
@@ -126,7 +133,7 @@ impl PongGameState {
                 if y < (self.right_player - PADDLE_HEIGHT/6) {
                     dy = -1;
                 }
-                self.speed += 1;
+                self.speed += BALL_SPEED_UP;
             }
             self.pong_ball = (x, y);
             if self.trail.len() > MAX_TRAIL_LENGTH {
@@ -135,7 +142,7 @@ impl PongGameState {
                 // and O(1) truncating the start
                 // but this still prevents the game incresing in memory usage
                 // indefintely if the player moves into a safe spot
-                // which is probably worse
+                // which is worse.
                 self.trail.remove(0);
             }
             self.trail.push(self.pong_ball);
@@ -223,6 +230,10 @@ impl PongGameState {
         arrays::array_from_vector(self.trail.iter().map(|&c| c.1).collect())
     }
 }
+
+// No mangle is needed on all functions made available for the dynamic library
+// so that the functions can be accessed using their name as defined here.
+// Because C has no namespacing all of these functions are prefixed with pong_game_
 
 #[no_mangle]
 pub extern fn pong_game_new() -> *mut PongGameState {

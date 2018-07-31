@@ -1,17 +1,16 @@
+local ffi = require 'ffi'
+local loverust = require 'src.loverust'
+
 local arrays = {
   _DESCRIPTION = [[
 A wrapper around a struct containing an array originating from Rust.
 Luajit gives us a reference to cdata arrays so we can index the values.
 The struct contains a length parameter so we know how many elements
 are in the array.
-
-This module assumes `loverust` is a global reference to the dynamic lib.
   ]],
   _URL = 'https://github.com/Skeletonxf/rust2d',
   _LICENSE = 'MPL2'
 }
-
-local ffi = require 'ffi'
 
 ffi.cdef[[
 // wrapper around an array for recieving from rust functions
