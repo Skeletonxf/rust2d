@@ -5,25 +5,30 @@ use arrays::Array;
 
 use libc::size_t;
 
-use std::slice;
 use std::collections::HashMap;
+use std::slice;
+use std::os::raw::c_char;
+
+use strings;
 
 // Same precision as Lua number (double)
 type LuaNumber = f64;
 
+#[derive(Debug)]
 pub enum LuaType {
-    Nil,
+    Nil, // Lua cannot have nil values but can have a nil key
     Boolean(bool),
     Number(LuaNumber),
-    String(String),
+    String(String), // Lua can have non string keys
     Table(Table),
     // Userdata, Functions and Threads are not intended to be
     // passed through FFI
 }
 
 // Rust representation of a Lua table
+#[derive(Debug)]
 pub struct Table {
-    array: Vec<LuaNumber>,
+    array: Vec<LuaNumber>, // TODO: Lua can have nil numbers
     hash_map: HashMap<String, LuaType>, // TODO
 }
 
@@ -46,11 +51,34 @@ impl Table {
     fn import_array(&mut self, data: Vec<LuaNumber>) {
         self.array = data;
     }
+
+    fn put_string_string(&mut self, key: String, value: String) {
+        self.hash_map.insert(key, LuaType::String(value));
+    }
+
+    fn put_string_boolean(&mut self, key: String, value: bool) {
+        self.hash_map.insert(key, LuaType::Boolean(value));
+    }
+
+    fn put_string_number(&mut self, key: String, value: LuaNumber) {
+        self.hash_map.insert(key, LuaType::Number(value));
+    }
 }
 
 #[no_mangle]
 pub extern fn tables_new_empty_table() -> *mut Table {
     Box::into_raw(Box::new(Table::new()))
+}
+
+#[no_mangle]
+pub extern fn tables_debug(pointer: *mut Table) {
+    if pointer.is_null() {
+        eprintln!("Expected pointer to Table to not be null");
+    }
+    let table = unsafe {
+        &mut *pointer
+    };
+    println!("{:?}", table)
 }
 
 /**
@@ -93,6 +121,58 @@ pub extern fn tables_export_array(pointer: *mut Table) -> Array {
         &mut *pointer
     };
     table.export_array()
+}
+
+#[no_mangle]
+pub extern fn tables_put_string_string(
+    pointer: *mut Table,
+    c_string_pointer_key: *const c_char,
+    c_string_pointer_value: *const c_char
+) {
+    if pointer.is_null() {
+        eprintln!("Expected pointer to Table to not be null");
+        panic!();
+    }
+    let table = unsafe {
+        &mut *pointer
+    };
+    let key = strings::to_rust_string(c_string_pointer_key);
+    let value = strings::to_rust_string(c_string_pointer_value);
+    table.put_string_string(key, value);
+}
+
+#[no_mangle]
+pub extern fn tables_put_string_boolean(
+    pointer: *mut Table,
+    c_string_pointer_key: *const c_char,
+    value: bool
+) {
+    if pointer.is_null() {
+        eprintln!("Expected pointer to Table to not be null");
+        panic!();
+    }
+    let table = unsafe {
+        &mut *pointer
+    };
+    let key = strings::to_rust_string(c_string_pointer_key);
+    table.put_string_boolean(key, value);
+}
+
+#[no_mangle]
+pub extern fn tables_put_string_number(
+    pointer: *mut Table,
+    c_string_pointer_key: *const c_char,
+    value: LuaNumber
+) {
+    if pointer.is_null() {
+        eprintln!("Expected pointer to Table to not be null");
+        panic!();
+    }
+    let table = unsafe {
+        &mut *pointer
+    };
+    let key = strings::to_rust_string(c_string_pointer_key);
+    table.put_string_number(key, value);
 }
 
 #[no_mangle]

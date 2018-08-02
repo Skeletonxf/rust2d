@@ -4,7 +4,6 @@ ffi.cdef[[
 void hello();
 bool is_odd(unsigned int number);
 char * print_and_return(const char *string);
-void free_c_owned_string(char *string);
 void print(const char *string);
 uint32_t add_two_numbers(uint32_t, uint32_t);
 void print_array(const uint32_t *array, size_t length);
@@ -19,14 +18,15 @@ vector2_t vector2_swap(vector2_t);
 local loverust = require 'src.loverust'
 
 local arrays = require 'src.arrays'
+local strings = require 'src.strings'
 
 loverust.hello()
 print('Is 1 odd? ' .. tostring(loverust.is_odd(1)))
 
 local cstring = loverust.print_and_return("💖plswork")
-local luaSting = ffi.string(cstring)
+local luaSting = strings.copy(cstring)
 print('It worked! ' .. luaSting)
-loverust.free_c_owned_string(cstring)
+strings.free(cstring)
 print('And no memory leak!')
 
 print('We still have the lua string from Rust')
@@ -50,6 +50,8 @@ array = nil
 
 local complicatedTable = {
   1,2,4,
+  baz = 4,
+  barbaz = true,
   foo = 'bar',
   foobar = {
     1, 6, 'baz', foobaz = {
