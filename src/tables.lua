@@ -20,6 +20,7 @@ array_t tables_export_array(table_t *);
 void tables_put_string_string(table_t *, const char *string, const char *string);
 void tables_put_string_boolean(table_t *, const char *string, bool);
 void tables_put_string_number(table_t *, const char *string, double);
+void tables_put_string_table(table_t *, const char *string, table_t *);
 void tables_debug(table_t *);
 void tables_free_table(table_t *);
 ]]
@@ -51,6 +52,7 @@ local function export(lua_table, rust_table)
     print(result)
     result:free()
   end
+  return rust_table
 end
 
 function tables.export(lua_table)
@@ -91,6 +93,10 @@ function Table.put(self, key, value)
     end
     if type(value) == 'boolean' then
       loverust.tables_put_string_boolean(self.table, key, value)
+    end
+    if type(value) == 'table' then
+      local subtable = tables.export(value)
+      loverust.tables_put_string_table(self.table, key, subtable.table)
     end
   end
 end
