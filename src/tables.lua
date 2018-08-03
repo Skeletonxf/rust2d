@@ -15,8 +15,9 @@ local loverust = require 'src.loverust'
 ffi.cdef[[
 typedef struct table_S table_t;
 table_t * tables_new_empty_table();
-void tables_import_array(table_t *, const double *array, size_t length);
-array_t tables_export_array(table_t *);
+void tables_add_string(table_t *, const char *string);
+void tables_add_number(table_t *, double);
+void tables_add_nil(table_t *);
 void tables_put_string_string(table_t *, const char *string, const char *string);
 void tables_put_string_boolean(table_t *, const char *string, bool);
 void tables_put_string_number(table_t *, const char *string, double);
@@ -32,34 +33,24 @@ Table.__index = Table
 local table = {}
 
 local function export(lua_table, rust_table)
-  local array = {}
-  -- loop over all pairs in the table and
-  -- assign all numerical keys to the array
+  -- First loop through numerical indexes
+  -- in order and add to Rust Table array.
+  for _, v in ipairs(lua_table) do
+    rust_table:add(v)
+    lua_table[v] = nil
+  end
+  -- Now loop through other pairs and add to
+  -- Rust Table hash map.
   for k, v in pairs(lua_table) do
-    if type(k) == 'number' then
-      array[k] = v
-    end
-    -- TODO: make assignment to hash part of rust table
-    if type(k) == 'string' then
-      rust_table:put(k, v)
-    end
+    rust_table:put(k, v)
   end
   rust_table:debug()
-  if #array > 0 then
-    -- process array portion of table
-    rust_table:setArray(array)
-    local result = rust_table:getArray()
-    print(result)
-    result:free()
-  end
   return rust_table
 end
 
 function tables.export(lua_table)
   return export(lua_table, table.new())
 end
-
--- TODO: tables.import
 
 function table.new()
   local o = {}
@@ -68,21 +59,20 @@ function table.new()
   return o
 end
 
--- Takes a lua array and creates a c array from it
--- to set on the Rust Table.
-function Table.setArray(self, array)
-  loverust.tables_import_array(
-      self.table,
-      ffi.new("double[" .. tostring(#array) .. "]", array),
-      #array)
+-- Adds a value to the array part of the Rust Table
+function Table.add(self, value)
+  if type(value) == 'number' then
+    loverust.tables_add_number(self.table, value)
+  end
+  if type(value) == 'string' then
+    loverust.tables_add_string(self.table, value)
+  end
+  if type(value) == 'nil' then
+    loverust.tables_add_nil(self.table)
+  end
 end
 
--- Gets a copy of the Rust Table's array.
--- This will need freeing.
-function Table.getArray(self)
-  return arrays.new(loverust.tables_export_array(self.table))
-end
-
+-- Adds a key - value pair to the hash map part of the Rust Table
 function Table.put(self, key, value)
   if type(key) == 'string' then
     if type(value) == 'string' then
@@ -95,6 +85,7 @@ function Table.put(self, key, value)
       loverust.tables_put_string_boolean(self.table, key, value)
     end
     if type(value) == 'table' then
+      -- subtable will be reclaimed by Rust code so does not need freeing
       local subtable = tables.export(value)
       loverust.tables_put_string_table(self.table, key, subtable.table)
     end

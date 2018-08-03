@@ -1,12 +1,6 @@
 extern crate libc;
 
-use arrays;
-use arrays::Array;
-
-use libc::size_t;
-
 use std::collections::HashMap;
-use std::slice;
 use std::os::raw::c_char;
 
 use strings;
@@ -15,22 +9,38 @@ use strings;
 type LuaNumber = f64;
 
 #[derive(Debug, Clone)]
-pub enum LuaType {
-    Nil, // Lua cannot have nil values but can have a nil key
+pub enum LuaValue {
+    Nil,
     Boolean(bool),
     Number(LuaNumber),
-    String(String), // Lua can have non string keys
+    String(String),
     Table(Table),
     // Userdata, Functions and Threads are not intended to be
     // passed through FFI
 }
 
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum LuaKey {
+    String(String),
+    // Lua can hash other values but it is best to stick to Strings
+}
+
 // Rust representation of a Lua table
 #[derive(Debug, Clone)]
 pub struct Table {
-    array: Vec<LuaNumber>, // TODO: Lua can any type in the array
-    hash_map: HashMap<String, LuaType>, // TODO
+    array: Vec<LuaValue>,
+    hash_map: HashMap<LuaKey, LuaValue>,
 }
+
+impl PartialEq for Table {
+    fn eq(&self, other: &Table) -> bool {
+        // Lua tables are compared by pointer equality
+        // and we cannot compare by contents here because f64
+        // does not implement Eq so we do the same.
+        self as *const _ == other as *const _
+    }
+}
+impl Eq for Table {}
 
 impl Table {
     fn new() -> Table {
@@ -40,32 +50,12 @@ impl Table {
         }
     }
 
-    /**
-     * Returns a copy of this array as repr(C)
-     * The Array should be freed using the arrays module
-     */
-    fn export_array(&mut self) -> Array {
-        arrays::vec_to_array(self.array.clone())
+    fn add_value(&mut self, value: LuaValue) {
+        self.array.push(value);
     }
 
-    fn import_array(&mut self, data: Vec<LuaNumber>) {
-        self.array = data;
-    }
-
-    fn put_string_string(&mut self, key: String, value: String) {
-        self.hash_map.insert(key, LuaType::String(value));
-    }
-
-    fn put_string_boolean(&mut self, key: String, value: bool) {
-        self.hash_map.insert(key, LuaType::Boolean(value));
-    }
-
-    fn put_string_number(&mut self, key: String, value: LuaNumber) {
-        self.hash_map.insert(key, LuaType::Number(value));
-    }
-
-    fn put_string_table(&mut self, key: String, value: &Table) {
-        self.hash_map.insert(key, LuaType::Table(value.clone()));
+    fn put_key_value(&mut self, key: LuaKey, value: LuaValue) {
+        self.hash_map.insert(key, value);
     }
 }
 
@@ -85,46 +75,47 @@ pub extern fn tables_debug(pointer: *mut Table) {
     println!("{:?}", table)
 }
 
-/**
- * Imports the C array into the Table's array field
- */
 #[no_mangle]
-pub extern fn tables_import_array(
+pub extern fn tables_add_number(
     pointer: *mut Table,
-    c_array_pointer: *const LuaNumber,
-    length: size_t
+    value: LuaNumber,
 ) {
-    if c_array_pointer.is_null() {
-        eprintln!("Expected pointer to C array to not be null");
-        return;
-    }
     if pointer.is_null() {
         eprintln!("Expected pointer to Table to not be null");
         return;
     }
-    let array_slice = unsafe {
-        slice::from_raw_parts(c_array_pointer, length as usize)
-    };
     let table = unsafe {
         &mut *pointer
     };
-    table.import_array(array_slice.to_vec());
+    table.add_value(LuaValue::Number(value));
 }
 
-/**
- * Exports a copy of the Table's array field as an Array
- * from the Arrays module
- */
 #[no_mangle]
-pub extern fn tables_export_array(pointer: *mut Table) -> Array {
+pub extern fn tables_add_string(
+    pointer: *mut Table,
+    c_string_pointer_value: *const c_char,
+) {
     if pointer.is_null() {
         eprintln!("Expected pointer to Table to not be null");
-        panic!();
+        return;
     }
     let table = unsafe {
         &mut *pointer
     };
-    table.export_array()
+    let value = strings::to_rust_string(c_string_pointer_value);
+    table.add_value(LuaValue::String(value));
+}
+
+#[no_mangle]
+pub extern fn tables_add_nil(pointer: *mut Table) {
+    if pointer.is_null() {
+        eprintln!("Expected pointer to Table to not be null");
+        return;
+    }
+    let table = unsafe {
+        &mut *pointer
+    };
+    table.add_value(LuaValue::Nil);
 }
 
 #[no_mangle]
@@ -142,7 +133,7 @@ pub extern fn tables_put_string_string(
     };
     let key = strings::to_rust_string(c_string_pointer_key);
     let value = strings::to_rust_string(c_string_pointer_value);
-    table.put_string_string(key, value);
+    table.put_key_value(LuaKey::String(key), LuaValue::String(value));
 }
 
 #[no_mangle]
@@ -159,7 +150,7 @@ pub extern fn tables_put_string_boolean(
         &mut *pointer
     };
     let key = strings::to_rust_string(c_string_pointer_key);
-    table.put_string_boolean(key, value);
+    table.put_key_value(LuaKey::String(key), LuaValue::Boolean(value));
 }
 
 #[no_mangle]
@@ -176,7 +167,11 @@ pub extern fn tables_put_string_number(
         &mut *pointer
     };
     let key = strings::to_rust_string(c_string_pointer_key);
-    table.put_string_number(key, value);
+    table.put_key_value(LuaKey::String(key), LuaValue::Number(value));
+}
+
+fn unbox<T>(value: Box<T>) -> T {
+    *value
 }
 
 #[no_mangle]
@@ -197,10 +192,15 @@ pub extern fn tables_put_string_table(
         &mut *pointer
     };
     let key = strings::to_rust_string(c_string_pointer_key);
-    let value = unsafe {
-        & *table_pointer_value
-    };
-    table.put_string_table(key, value);
+    // Take back ownership of the Table to move into the main Table
+    // This means the Lua side does not need to free subtables
+    // when constructing a Table
+    let value = unbox(
+        unsafe {
+            Box::from_raw(table_pointer_value)
+        }
+    );
+    table.put_key_value(LuaKey::String(key), LuaValue::Table(value));
 }
 
 #[no_mangle]

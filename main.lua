@@ -54,8 +54,8 @@ local complicatedTable = {
   barbaz = true,
   foo = 'bar',
   foobar = {
-    1, 6, foobaz = { -- , 'baz'
-      4, -- 'bazfoo'
+    1, 6, 'baz', foobaz = {
+      4, 'bazfoo'
     }
   }
 }
