@@ -107,6 +107,21 @@ pub extern fn tables_add_string(
 }
 
 #[no_mangle]
+pub extern fn tables_add_boolean(
+    pointer: *mut Table,
+    value: bool,
+) {
+    if pointer.is_null() {
+        eprintln!("Expected pointer to Table to not be null");
+        return;
+    }
+    let table = unsafe {
+        &mut *pointer
+    };
+    table.add_value(LuaValue::Boolean(value));
+}
+
+#[no_mangle]
 pub extern fn tables_add_nil(pointer: *mut Table) {
     if pointer.is_null() {
         eprintln!("Expected pointer to Table to not be null");
@@ -119,10 +134,37 @@ pub extern fn tables_add_nil(pointer: *mut Table) {
 }
 
 #[no_mangle]
+pub extern fn tables_add_table(
+    pointer: *mut Table,
+    table_pointer_value: *mut Table,
+) {
+    if pointer.is_null() {
+        eprintln!("Expected pointer to Table to not be null");
+        return;
+    }
+    if table_pointer_value.is_null() {
+        eprintln!("Expected pointer to Table value to not be null");
+        return;
+    }
+    let table = unsafe {
+        &mut *pointer
+    };
+    // Take back ownership of the Table to move into the main Table
+    // This means the Lua side does not need to free subtables
+    // when constructing a Table
+    let value = unbox(
+        unsafe {
+            Box::from_raw(table_pointer_value)
+        }
+    );
+    table.add_value(LuaValue::Table(value));
+}
+
+#[no_mangle]
 pub extern fn tables_put_string_string(
     pointer: *mut Table,
     c_string_pointer_key: *const c_char,
-    c_string_pointer_value: *const c_char
+    c_string_pointer_value: *const c_char,
 ) {
     if pointer.is_null() {
         eprintln!("Expected pointer to Table to not be null");

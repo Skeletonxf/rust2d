@@ -18,6 +18,7 @@ table_t * tables_new_empty_table();
 void tables_add_string(table_t *, const char *string);
 void tables_add_number(table_t *, double);
 void tables_add_nil(table_t *);
+void tables_add_table(table_t *, table_t *);
 void tables_put_string_string(table_t *, const char *string, const char *string);
 void tables_put_string_boolean(table_t *, const char *string, bool);
 void tables_put_string_number(table_t *, const char *string, double);
@@ -36,6 +37,7 @@ local function export(lua_table, rust_table)
   -- First loop through numerical indexes
   -- in order and add to Rust Table array.
   for _, v in ipairs(lua_table) do
+    -- This will turn the array into 1 indexed on the Rust side
     rust_table:add(v)
     lua_table[v] = nil
   end
@@ -69,6 +71,11 @@ function Table.add(self, value)
   end
   if type(value) == 'nil' then
     loverust.tables_add_nil(self.table)
+  end
+  if type(value) == 'table' then
+    -- subtable will be reclaimed by Rust code so does not need freeing
+    local subtable = tables.export(value)
+    loverust.tables_add_table(self.table, subtable.table)
   end
 end
 

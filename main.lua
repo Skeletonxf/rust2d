@@ -48,12 +48,16 @@ array:free()
 array = nil
 
 local complicatedTable = {
-  1,2,4,
+  1,2,{
+    3,5,6,
+    baz = 'foobaz'
+  },4,
   baz = 4,
   barbaz = true,
   foo = 'bar',
   foobar = {
-    1, 6, 'baz', foobaz = {
+    1, 6, 'baz',
+    foobaz = {
       4, 'bazfoo'
     }
   }
