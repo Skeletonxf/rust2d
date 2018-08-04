@@ -6,7 +6,6 @@ bool is_odd(unsigned int number);
 char * print_and_return(const char *string);
 void print(const char *string);
 uint32_t add_two_numbers(uint32_t, uint32_t);
-void print_array(const uint32_t *array, size_t length);
 // mirror the rust Vector2 struct definition
 typedef struct vector2 {
   uint32_t x;

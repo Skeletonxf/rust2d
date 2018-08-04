@@ -1,11 +1,9 @@
 extern crate libc;
 
 use libc::uint32_t;
-use libc::size_t;
 
 use std::fmt;
 
-use std::slice;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 
@@ -56,17 +54,6 @@ pub extern fn print_and_return(c_string_pointer: *const c_char) -> *mut c_char {
 #[no_mangle]
 pub extern fn add_two_numbers(x: uint32_t, y: uint32_t) -> uint32_t {
     x + y
-}
-
-
-#[no_mangle]
-pub extern fn print_array(c_array_pointer: *const uint32_t, length: size_t) {
-    let array_slice = unsafe {
-        assert!(!c_array_pointer.is_null());
-
-        slice::from_raw_parts(c_array_pointer, length as usize)
-    };
-    println!("{:?}", array_slice);
 }
 
 /*

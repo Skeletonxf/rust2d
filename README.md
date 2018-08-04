@@ -5,6 +5,19 @@ This is a work in progress library of utility code for creating a project where 
 ## Examples
 - Small [pong game](https://github.com/Skeletonxf/rust2d/tree/pong) using Rust for the update function and then lots of observers to draw it in love2d.
 
+# Modules
+
+- **arrays** Code for sending and recieving arrays over FFI.
+- **strings** Code for sending and recieving strings over FFI.
+- **tables** Work in progress code for sending Lua tables over FFI.
+
+## Non modules
+
+These can be sent freely with no wrapping.
+
+- **numbers**
+- **booleans**
+
 # Library
 
 Each module written on the Rust side has a Lua module by the same name and location which is responsible for calling the Rust code. The only exceptions to this are testing code in main.lua, lib.rs and loverust.lua. The former 2 are where new library functionality is tested, and the latter is responsible for loading the Rust code to call from Lua.

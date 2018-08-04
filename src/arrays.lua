@@ -13,6 +13,8 @@ local ffi = require 'ffi'
 local loverust = require 'src.loverust'
 
 ffi.cdef[[
+void print_array(const uint32_t *array, size_t length);
+
 // wrapper around an array for recieving from rust functions
 typedef struct array {
   double * data;

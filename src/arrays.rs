@@ -1,12 +1,14 @@
 extern crate libc;
 
 use libc::size_t;
+use libc::uint32_t;
 
 // Same precision as Lua number (double)
 // also the same as libc::c_double;
 type LuaNumber = f64;
 
 use std;
+use std::slice;
 
 /**
  * A struct that can be mirrored in C to facilitate returning arrays to C
@@ -44,4 +46,17 @@ pub fn vec_to_array(mut data: Vec<LuaNumber>) -> Array {
 #[no_mangle]
 pub extern fn generate_array() -> Array {
     vec_to_array(vec![1.0f64, 4.0f64, 3.0f64, 8.0f64])
+}
+
+/**
+ * Prints an Array originating from LuaJIT
+ */
+#[no_mangle]
+pub extern fn print_array(c_array_pointer: *const uint32_t, length: size_t) {
+    let array_slice = unsafe {
+        assert!(!c_array_pointer.is_null());
+
+        slice::from_raw_parts(c_array_pointer, length as usize)
+    };
+    println!("{:?}", array_slice);
 }
