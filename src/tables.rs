@@ -59,6 +59,24 @@ impl Table {
     }
 }
 
+/**
+ * Gets a reference to the Table from a pointer (if it exists)
+ */
+fn get_table<'a>(pointer: *mut Table) -> Option<&'a mut Table> {
+    if pointer.is_null() {
+        return None;
+    }
+    Some(
+        unsafe {
+            &mut *pointer
+        }
+    )
+}
+
+fn unbox<T>(value: Box<T>) -> T {
+    *value
+}
+
 #[no_mangle]
 pub extern fn tables_new_empty_table() -> *mut Table {
     Box::into_raw(Box::new(Table::new()))
@@ -66,28 +84,18 @@ pub extern fn tables_new_empty_table() -> *mut Table {
 
 #[no_mangle]
 pub extern fn tables_debug(pointer: *mut Table) {
-    if pointer.is_null() {
-        eprintln!("Expected pointer to Table to not be null");
-    }
-    let table = unsafe {
-        &mut *pointer
+    match get_table(pointer) {
+        Some(table) => println!("{:?}", table),
+        None => eprintln!("Expected pointer to Table to not be null"),
     };
-    println!("{:?}", table)
 }
 
 #[no_mangle]
-pub extern fn tables_add_number(
-    pointer: *mut Table,
-    value: LuaNumber,
-) {
-    if pointer.is_null() {
-        eprintln!("Expected pointer to Table to not be null");
-        return;
-    }
-    let table = unsafe {
-        &mut *pointer
+pub extern fn tables_add_number(pointer: *mut Table, value: LuaNumber) {
+    match get_table(pointer) {
+        Some(table) => table.add_value(LuaValue::Number(value)),
+        None => eprintln!("Expected pointer to Table to not be null"),
     };
-    table.add_value(LuaValue::Number(value));
 }
 
 #[no_mangle]
@@ -95,42 +103,27 @@ pub extern fn tables_add_string(
     pointer: *mut Table,
     c_string_pointer_value: *const c_char,
 ) {
-    if pointer.is_null() {
-        eprintln!("Expected pointer to Table to not be null");
-        return;
-    }
-    let table = unsafe {
-        &mut *pointer
-    };
     let value = strings::to_rust_string(c_string_pointer_value);
-    table.add_value(LuaValue::String(value));
+    match get_table(pointer) {
+        Some(table) => table.add_value(LuaValue::String(value)),
+        None => eprintln!("Expected pointer to Table to not be null"),
+    };
 }
 
 #[no_mangle]
-pub extern fn tables_add_boolean(
-    pointer: *mut Table,
-    value: bool,
-) {
-    if pointer.is_null() {
-        eprintln!("Expected pointer to Table to not be null");
-        return;
-    }
-    let table = unsafe {
-        &mut *pointer
+pub extern fn tables_add_boolean(pointer: *mut Table, value: bool) {
+    match get_table(pointer) {
+        Some(table) => table.add_value(LuaValue::Boolean(value)),
+        None => eprintln!("Expected pointer to Table to not be null"),
     };
-    table.add_value(LuaValue::Boolean(value));
 }
 
 #[no_mangle]
 pub extern fn tables_add_nil(pointer: *mut Table) {
-    if pointer.is_null() {
-        eprintln!("Expected pointer to Table to not be null");
-        return;
-    }
-    let table = unsafe {
-        &mut *pointer
+    match get_table(pointer) {
+        Some(table) => table.add_value(LuaValue::Nil),
+        None => eprintln!("Expected pointer to Table to not be null"),
     };
-    table.add_value(LuaValue::Nil);
 }
 
 #[no_mangle]
@@ -138,26 +131,24 @@ pub extern fn tables_add_table(
     pointer: *mut Table,
     table_pointer_value: *mut Table,
 ) {
-    if pointer.is_null() {
-        eprintln!("Expected pointer to Table to not be null");
-        return;
-    }
-    if table_pointer_value.is_null() {
-        eprintln!("Expected pointer to Table value to not be null");
-        return;
-    }
-    let table = unsafe {
-        &mut *pointer
+    match get_table(pointer) {
+        Some(table) => {
+            if table_pointer_value.is_null() {
+                eprintln!("Expected pointer to Table value to not be null");
+                return;
+            }
+            // Take back ownership of the Table to move into the main Table
+            // This means the Lua side does not need to free subtables
+            // when constructing a Table
+            let value = unbox(
+                unsafe {
+                    Box::from_raw(table_pointer_value)
+                }
+            );
+            table.add_value(LuaValue::Table(value));
+        },
+        None => eprintln!("Expected pointer to Table to not be null"),
     };
-    // Take back ownership of the Table to move into the main Table
-    // This means the Lua side does not need to free subtables
-    // when constructing a Table
-    let value = unbox(
-        unsafe {
-            Box::from_raw(table_pointer_value)
-        }
-    );
-    table.add_value(LuaValue::Table(value));
 }
 
 #[no_mangle]
@@ -166,16 +157,14 @@ pub extern fn tables_put_string_string(
     c_string_pointer_key: *const c_char,
     c_string_pointer_value: *const c_char,
 ) {
-    if pointer.is_null() {
-        eprintln!("Expected pointer to Table to not be null");
-        return;
-    }
-    let table = unsafe {
-        &mut *pointer
+    match get_table(pointer) {
+        Some(table) => {
+            let key = strings::to_rust_string(c_string_pointer_key);
+            let value = strings::to_rust_string(c_string_pointer_value);
+            table.put_key_value(LuaKey::String(key), LuaValue::String(value));
+        },
+        None => eprintln!("Expected pointer to Table to not be null"),
     };
-    let key = strings::to_rust_string(c_string_pointer_key);
-    let value = strings::to_rust_string(c_string_pointer_value);
-    table.put_key_value(LuaKey::String(key), LuaValue::String(value));
 }
 
 #[no_mangle]
@@ -184,15 +173,13 @@ pub extern fn tables_put_string_boolean(
     c_string_pointer_key: *const c_char,
     value: bool
 ) {
-    if pointer.is_null() {
-        eprintln!("Expected pointer to Table to not be null");
-        return;
-    }
-    let table = unsafe {
-        &mut *pointer
+    match get_table(pointer) {
+        Some(table) => {
+            let key = strings::to_rust_string(c_string_pointer_key);
+            table.put_key_value(LuaKey::String(key), LuaValue::Boolean(value));
+        },
+        None => eprintln!("Expected pointer to Table to not be null"),
     };
-    let key = strings::to_rust_string(c_string_pointer_key);
-    table.put_key_value(LuaKey::String(key), LuaValue::Boolean(value));
 }
 
 #[no_mangle]
@@ -201,19 +188,13 @@ pub extern fn tables_put_string_number(
     c_string_pointer_key: *const c_char,
     value: LuaNumber
 ) {
-    if pointer.is_null() {
-        eprintln!("Expected pointer to Table to not be null");
-        return;
-    }
-    let table = unsafe {
-        &mut *pointer
+    match get_table(pointer) {
+        Some(table) => {
+            let key = strings::to_rust_string(c_string_pointer_key);
+            table.put_key_value(LuaKey::String(key), LuaValue::Number(value));
+        },
+        None => eprintln!("Expected pointer to Table to not be null"),
     };
-    let key = strings::to_rust_string(c_string_pointer_key);
-    table.put_key_value(LuaKey::String(key), LuaValue::Number(value));
-}
-
-fn unbox<T>(value: Box<T>) -> T {
-    *value
 }
 
 #[no_mangle]
@@ -222,27 +203,25 @@ pub extern fn tables_put_string_table(
     c_string_pointer_key: *const c_char,
     table_pointer_value: *mut Table
 ) {
-    if pointer.is_null() {
-        eprintln!("Expected pointer to Table to not be null");
-        return;
-    }
-    if table_pointer_value.is_null() {
-        eprintln!("Expected pointer to Table value to not be null");
-        return;
-    }
-    let table = unsafe {
-        &mut *pointer
+    match get_table(pointer) {
+        Some(table) => {
+            if table_pointer_value.is_null() {
+                eprintln!("Expected pointer to Table value to not be null");
+                return;
+            }
+            let key = strings::to_rust_string(c_string_pointer_key);
+            // Take back ownership of the Table to move into the main Table
+            // This means the Lua side does not need to free subtables
+            // when constructing a Table
+            let value = unbox(
+                unsafe {
+                    Box::from_raw(table_pointer_value)
+                }
+            );
+            table.put_key_value(LuaKey::String(key), LuaValue::Table(value));
+        },
+        None => eprintln!("Expected pointer to Table to not be null"),
     };
-    let key = strings::to_rust_string(c_string_pointer_key);
-    // Take back ownership of the Table to move into the main Table
-    // This means the Lua side does not need to free subtables
-    // when constructing a Table
-    let value = unbox(
-        unsafe {
-            Box::from_raw(table_pointer_value)
-        }
-    );
-    table.put_key_value(LuaKey::String(key), LuaValue::Table(value));
 }
 
 #[no_mangle]
