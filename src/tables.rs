@@ -1,6 +1,7 @@
 extern crate libc;
 
 use std::collections::HashMap;
+use std::fmt;
 use std::os::raw::c_char;
 
 use strings;
@@ -8,6 +9,9 @@ use strings;
 // Same precision as Lua number (double)
 type LuaNumber = f64;
 
+/**
+ * Cannot hash because f64 is not hashable.
+ */
 #[derive(Debug, Clone)]
 pub enum LuaValue {
     Nil,
@@ -59,6 +63,43 @@ impl Table {
     }
 }
 
+fn fmt_field(f: &mut fmt::Formatter, value: &LuaValue, depth: u64) -> fmt::Result {
+    for _ in 0..depth {
+        write!(f, "  ")?;
+    }
+    match value {
+        &LuaValue::Nil => write!(f, "nil")?,
+        &LuaValue::Boolean(boolean) => write!(f, "{}", boolean)?,
+        &LuaValue::Number(number) => write!(f, "{}", number)?,
+        &LuaValue::String(ref string) => write!(f, "{}", string)?,
+        &LuaValue::Table(ref table) => {
+            // TODO
+            write!(f, "table")?
+        },
+    };
+    if depth > 0 {
+        write!(f, "\n")?;
+    }
+    // TODO: Find better way to get Result
+    write!(f, "")
+}
+
+impl fmt::Display for Table {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{{")?; // write literal {
+        for (index, value) in self.array.iter().enumerate() {
+            fmt_field(f, value, 0)?;
+            if index < (self.array.len() - 1) {
+                write!(f, ",")?;
+            }
+        }
+        for value in &self.hash_map {
+            // TODO
+        }
+        write!(f, "}}") // write literal }
+    }
+}
+
 /**
  * Gets a reference to the Table from a pointer (if it exists)
  */
@@ -85,7 +126,7 @@ pub extern fn tables_new_empty_table() -> *mut Table {
 #[no_mangle]
 pub extern fn tables_debug(pointer: *mut Table) {
     match get_table(pointer) {
-        Some(table) => println!("{:?}", table),
+        Some(table) => println!("{:?}\n{}", table, table),
         None => eprintln!("Expected pointer to Table to not be null"),
     };
 }
