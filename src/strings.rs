@@ -10,13 +10,15 @@ use std::os::raw::c_char;
 
 /**
  * Creates a Rust String from a C string pointer (ie originating from Lua)
+ *
+ * # Safety
+ *
+ * The string pointer must be valid.
  */
-pub fn to_rust_string(c_string_pointer: *const c_char) -> String {
-    unsafe {
-        assert!(!c_string_pointer.is_null());
+pub unsafe fn to_rust_string(c_string_pointer: *const c_char) -> String {
+    assert!(!c_string_pointer.is_null());
 
-        CStr::from_ptr(c_string_pointer).to_string_lossy().into_owned()
-    }
+    CStr::from_ptr(c_string_pointer).to_string_lossy().into_owned()
 }
 
 /**
@@ -35,13 +37,11 @@ pub fn to_c_owned_string(rust_string: String) -> *mut c_char {
  * to free the memory
  */
 #[no_mangle]
-pub extern fn free_c_owned_string(pointer: *mut c_char) {
-    unsafe {
-        if pointer.is_null() {
-            eprintln!("Expected to recieve non null pointer to free");
-            return;
-        }
-        // retake pointer to free memory
-        let _ = CString::from_raw(pointer);
+pub unsafe extern fn free_c_owned_string(pointer: *mut c_char) {
+    if pointer.is_null() {
+        eprintln!("Expected to recieve non null pointer to free");
+        return;
     }
+    // retake pointer to free memory
+    let _ = CString::from_raw(pointer);
 }

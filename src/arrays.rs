@@ -49,10 +49,14 @@ pub extern fn generate_array() -> Array {
 
 /**
  * Prints an Array originating from LuaJIT
+ *
+ * # Safety
+ *
+ * The array pointer must be valid.
  */
 #[no_mangle]
-pub extern fn print_array(c_array_pointer: *const u32, length: size_t) {
-    let array_slice = unsafe {
+pub unsafe extern fn print_array(c_array_pointer: *const u32, length: size_t) {
+    let array_slice = {
         assert!(!c_array_pointer.is_null());
 
         slice::from_raw_parts(c_array_pointer, length as usize)

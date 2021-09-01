@@ -1,3 +1,5 @@
+#![allow(clippy::missing_safety_doc)]
+
 extern crate libc;
 
 use std::fmt;
@@ -29,18 +31,16 @@ pub extern fn is_odd(n: u16) -> bool {
  * Unlike lua/c code this prints unicode properly
  */
 #[no_mangle]
-pub extern fn print(cstring: *const c_char) {
-    unsafe {
-        let slice = CStr::from_ptr(cstring);
-        match slice.to_str() {
-            Ok(s) => println!("{}", s),
-            Err(e) => eprintln!("{}", e),
-        }
+pub unsafe extern fn print(cstring: *const c_char) {
+    let slice = CStr::from_ptr(cstring);
+    match slice.to_str() {
+        Ok(s) => println!("{}", s),
+        Err(e) => eprintln!("{}", e),
     }
 }
 
 #[no_mangle]
-pub extern fn print_and_return(c_string_pointer: *const c_char) -> *mut c_char {
+pub unsafe extern fn print_and_return(c_string_pointer: *const c_char) -> *mut c_char {
     let mut rust_string = to_rust_string(c_string_pointer);
     // modify the rust String
     println!("Recieved {}", rust_string);
