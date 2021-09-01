@@ -46,7 +46,7 @@ pub enum LuaKey {
 impl fmt::Display for LuaKey {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            LuaKey::String(s) => write!(f, "{}", s)
+            LuaKey::String(s) => write!(f, "{}", s),
         }
     }
 }
@@ -128,12 +128,12 @@ fn unbox<T>(value: Box<T>) -> T {
 }
 
 #[no_mangle]
-pub extern fn tables_new_empty_table() -> *mut Table {
+pub extern "C" fn tables_new_empty_table() -> *mut Table {
     Box::into_raw(Box::new(Table::new()))
 }
 
 #[no_mangle]
-pub unsafe extern fn tables_debug(pointer: *mut Table) {
+pub unsafe extern "C" fn tables_debug(pointer: *mut Table) {
     match get_table(pointer) {
         Some(table) => println!("{:?}\n{}", table, table),
         None => eprintln!("Expected pointer to Table to not be null"),
@@ -141,7 +141,7 @@ pub unsafe extern fn tables_debug(pointer: *mut Table) {
 }
 
 #[no_mangle]
-pub unsafe extern fn tables_add_number(pointer: *mut Table, value: LuaNumber) {
+pub unsafe extern "C" fn tables_add_number(pointer: *mut Table, value: LuaNumber) {
     match get_table(pointer) {
         Some(table) => table.add_value(LuaValue::Number(value)),
         None => eprintln!("Expected pointer to Table to not be null"),
@@ -149,7 +149,7 @@ pub unsafe extern fn tables_add_number(pointer: *mut Table, value: LuaNumber) {
 }
 
 #[no_mangle]
-pub unsafe extern fn tables_add_string(
+pub unsafe extern "C" fn tables_add_string(
     pointer: *mut Table,
     c_string_pointer_value: *const c_char,
 ) {
@@ -161,7 +161,7 @@ pub unsafe extern fn tables_add_string(
 }
 
 #[no_mangle]
-pub unsafe extern fn tables_add_boolean(pointer: *mut Table, value: bool) {
+pub unsafe extern "C" fn tables_add_boolean(pointer: *mut Table, value: bool) {
     match get_table(pointer) {
         Some(table) => table.add_value(LuaValue::Boolean(value)),
         None => eprintln!("Expected pointer to Table to not be null"),
@@ -169,7 +169,7 @@ pub unsafe extern fn tables_add_boolean(pointer: *mut Table, value: bool) {
 }
 
 #[no_mangle]
-pub unsafe extern fn tables_add_nil(pointer: *mut Table) {
+pub unsafe extern "C" fn tables_add_nil(pointer: *mut Table) {
     match get_table(pointer) {
         Some(table) => table.add_value(LuaValue::Nil),
         None => eprintln!("Expected pointer to Table to not be null"),
@@ -177,10 +177,7 @@ pub unsafe extern fn tables_add_nil(pointer: *mut Table) {
 }
 
 #[no_mangle]
-pub unsafe extern fn tables_add_table(
-    pointer: *mut Table,
-    table_pointer_value: *mut Table,
-) {
+pub unsafe extern "C" fn tables_add_table(pointer: *mut Table, table_pointer_value: *mut Table) {
     match get_table(pointer) {
         Some(table) => {
             if table_pointer_value.is_null() {
@@ -192,13 +189,13 @@ pub unsafe extern fn tables_add_table(
             // when constructing a Table
             let value = unbox(Box::from_raw(table_pointer_value));
             table.add_value(LuaValue::Table(value));
-        },
+        }
         None => eprintln!("Expected pointer to Table to not be null"),
     };
 }
 
 #[no_mangle]
-pub unsafe extern fn tables_put_string_string(
+pub unsafe extern "C" fn tables_put_string_string(
     pointer: *mut Table,
     c_string_pointer_key: *const c_char,
     c_string_pointer_value: *const c_char,
@@ -208,46 +205,46 @@ pub unsafe extern fn tables_put_string_string(
             let key = strings::to_rust_string(c_string_pointer_key);
             let value = strings::to_rust_string(c_string_pointer_value);
             table.put_key_value(LuaKey::String(key), LuaValue::String(value));
-        },
+        }
         None => eprintln!("Expected pointer to Table to not be null"),
     };
 }
 
 #[no_mangle]
-pub unsafe extern fn tables_put_string_boolean(
+pub unsafe extern "C" fn tables_put_string_boolean(
     pointer: *mut Table,
     c_string_pointer_key: *const c_char,
-    value: bool
+    value: bool,
 ) {
     match get_table(pointer) {
         Some(table) => {
             let key = strings::to_rust_string(c_string_pointer_key);
             table.put_key_value(LuaKey::String(key), LuaValue::Boolean(value));
-        },
+        }
         None => eprintln!("Expected pointer to Table to not be null"),
     };
 }
 
 #[no_mangle]
-pub unsafe extern fn tables_put_string_number(
+pub unsafe extern "C" fn tables_put_string_number(
     pointer: *mut Table,
     c_string_pointer_key: *const c_char,
-    value: LuaNumber
+    value: LuaNumber,
 ) {
     match get_table(pointer) {
         Some(table) => {
             let key = strings::to_rust_string(c_string_pointer_key);
             table.put_key_value(LuaKey::String(key), LuaValue::Number(value));
-        },
+        }
         None => eprintln!("Expected pointer to Table to not be null"),
     };
 }
 
 #[no_mangle]
-pub unsafe extern fn tables_put_string_table(
+pub unsafe extern "C" fn tables_put_string_table(
     pointer: *mut Table,
     c_string_pointer_key: *const c_char,
-    table_pointer_value: *mut Table
+    table_pointer_value: *mut Table,
 ) {
     match get_table(pointer) {
         Some(table) => {
@@ -261,13 +258,13 @@ pub unsafe extern fn tables_put_string_table(
             // when constructing a Table
             let value = unbox(Box::from_raw(table_pointer_value));
             table.put_key_value(LuaKey::String(key), LuaValue::Table(value));
-        },
+        }
         None => eprintln!("Expected pointer to Table to not be null"),
     };
 }
 
 #[no_mangle]
-pub unsafe extern fn tables_free_table(pointer: *mut Table) {
+pub unsafe extern "C" fn tables_free_table(pointer: *mut Table) {
     if pointer.is_null() {
         eprintln!("Expected pointer to Table to not be null");
         return;

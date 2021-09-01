@@ -17,12 +17,12 @@ pub mod tables;
 pub mod strings;
 
 #[no_mangle]
-pub extern fn hello() {
+pub extern "C" fn hello() {
     println!("Hello from rust");
 }
 
 #[no_mangle]
-pub extern fn is_odd(n: u16) -> bool {
+pub extern "C" fn is_odd(n: u16) -> bool {
     (n % 2) == 0
 }
 
@@ -31,7 +31,7 @@ pub extern fn is_odd(n: u16) -> bool {
  * Unlike lua/c code this prints unicode properly
  */
 #[no_mangle]
-pub unsafe extern fn print(cstring: *const c_char) {
+pub unsafe extern "C" fn print(cstring: *const c_char) {
     let slice = CStr::from_ptr(cstring);
     match slice.to_str() {
         Ok(s) => println!("{}", s),
@@ -40,7 +40,7 @@ pub unsafe extern fn print(cstring: *const c_char) {
 }
 
 #[no_mangle]
-pub unsafe extern fn print_and_return(c_string_pointer: *const c_char) -> *mut c_char {
+pub unsafe extern "C" fn print_and_return(c_string_pointer: *const c_char) -> *mut c_char {
     let mut rust_string = to_rust_string(c_string_pointer);
     // modify the rust String
     println!("Recieved {}", rust_string);
@@ -50,7 +50,7 @@ pub unsafe extern fn print_and_return(c_string_pointer: *const c_char) -> *mut c
 }
 
 #[no_mangle]
-pub extern fn add_two_numbers(x: u32, y: u32) -> u32 {
+pub extern "C" fn add_two_numbers(x: u32, y: u32) -> u32 {
     x + y
 }
 
@@ -78,11 +78,11 @@ impl fmt::Display for Vector2 {
 }
 
 #[no_mangle]
-pub extern fn vector2_swap(vector2: Vector2) -> Vector2 {
+pub extern "C" fn vector2_swap(vector2: Vector2) -> Vector2 {
     println!("Before {}", vector2);
     let swapped = Vector2 {
         x: vector2.y,
-        y: vector2.x
+        y: vector2.x,
     };
     println!("After {}", swapped);
     swapped

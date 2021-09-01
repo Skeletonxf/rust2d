@@ -18,7 +18,9 @@ use std::os::raw::c_char;
 pub unsafe fn to_rust_string(c_string_pointer: *const c_char) -> String {
     assert!(!c_string_pointer.is_null());
 
-    CStr::from_ptr(c_string_pointer).to_string_lossy().into_owned()
+    CStr::from_ptr(c_string_pointer)
+        .to_string_lossy()
+        .into_owned()
 }
 
 /**
@@ -37,7 +39,7 @@ pub fn to_c_owned_string(rust_string: String) -> *mut c_char {
  * to free the memory
  */
 #[no_mangle]
-pub unsafe extern fn free_c_owned_string(pointer: *mut c_char) {
+pub unsafe extern "C" fn free_c_owned_string(pointer: *mut c_char) {
     if pointer.is_null() {
         eprintln!("Expected to recieve non null pointer to free");
         return;

@@ -20,7 +20,7 @@ pub struct Array {
 }
 
 #[no_mangle]
-pub extern fn free_array(array: Array) {
+pub extern "C" fn free_array(array: Array) {
     assert!(!array.data.is_null());
     unsafe {
         // reclaim the Vec so it can be dropped
@@ -43,7 +43,7 @@ pub fn vec_to_array(mut data: Vec<LuaNumber>) -> Array {
 }
 
 #[no_mangle]
-pub extern fn generate_array() -> Array {
+pub extern "C" fn generate_array() -> Array {
     vec_to_array(vec![1.0f64, 4.0f64, 3.0f64, 8.0f64])
 }
 
@@ -55,7 +55,7 @@ pub extern fn generate_array() -> Array {
  * The array pointer must be valid.
  */
 #[no_mangle]
-pub unsafe extern fn print_array(c_array_pointer: *const u32, length: size_t) {
+pub unsafe extern "C" fn print_array(c_array_pointer: *const u32, length: size_t) {
     let array_slice = {
         assert!(!c_array_pointer.is_null());
 
