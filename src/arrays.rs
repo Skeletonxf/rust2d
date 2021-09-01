@@ -1,7 +1,6 @@
 extern crate libc;
 
 use libc::size_t;
-use libc::uint32_t;
 
 // Same precision as Lua number (double)
 // also the same as libc::c_double;
@@ -52,7 +51,7 @@ pub extern fn generate_array() -> Array {
  * Prints an Array originating from LuaJIT
  */
 #[no_mangle]
-pub extern fn print_array(c_array_pointer: *const uint32_t, length: size_t) {
+pub extern fn print_array(c_array_pointer: *const u32, length: size_t) {
     let array_slice = unsafe {
         assert!(!c_array_pointer.is_null());
 

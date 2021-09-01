@@ -1,7 +1,5 @@
 extern crate libc;
 
-use libc::uint32_t;
-
 use std::fmt;
 
 use std::ffi::CStr;
@@ -52,7 +50,7 @@ pub extern fn print_and_return(c_string_pointer: *const c_char) -> *mut c_char {
 }
 
 #[no_mangle]
-pub extern fn add_two_numbers(x: uint32_t, y: uint32_t) -> uint32_t {
+pub extern fn add_two_numbers(x: u32, y: u32) -> u32 {
     x + y
 }
 
@@ -61,8 +59,8 @@ pub extern fn add_two_numbers(x: uint32_t, y: uint32_t) -> uint32_t {
  */
 #[repr(C)]
 pub struct Vector2 {
-    x: uint32_t,
-    y: uint32_t,
+    x: u32,
+    y: u32,
 }
 
 /*
