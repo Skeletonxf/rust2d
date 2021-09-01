@@ -63,7 +63,7 @@ impl PartialEq for Table {
         // Lua tables are compared by pointer equality
         // and we cannot compare by contents here because f64
         // does not implement Eq so we do the same.
-        self as *const _ == other as *const _
+        std::ptr::eq(self, other)
     }
 }
 impl Eq for Table {}
@@ -121,6 +121,8 @@ unsafe fn get_table<'a>(pointer: *mut Table) -> Option<&'a mut Table> {
     Some(&mut *pointer)
 }
 
+// argument is boxed because it was heap allocated to give to lua and now we're unboxing it
+#[allow(clippy::boxed_local)]
 fn unbox<T>(value: Box<T>) -> T {
     *value
 }

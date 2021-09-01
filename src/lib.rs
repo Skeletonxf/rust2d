@@ -46,7 +46,7 @@ pub unsafe extern fn print_and_return(c_string_pointer: *const c_char) -> *mut c
     println!("Recieved {}", rust_string);
     rust_string.push('💖');
     println!("Created {}", rust_string);
-    return to_c_owned_string(rust_string)
+    to_c_owned_string(rust_string)
 }
 
 #[no_mangle]
