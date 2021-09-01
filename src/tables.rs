@@ -6,10 +6,11 @@ use std::os::raw::c_char;
 
 use strings;
 
-// Same precision as Lua number (double)
+/** Same precision as Lua number (double) */
 type LuaNumber = f64;
 
-/**
+/** Enumeration of lua table value types.
+ *
  * Cannot hash because f64 is not hashable.
  */
 #[derive(Debug, Clone)]
@@ -23,13 +24,34 @@ pub enum LuaValue {
     // passed through FFI
 }
 
+impl fmt::Display for LuaValue {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            LuaValue::Nil => write!(f, "nil"),
+            LuaValue::Boolean(boolean) => write!(f, "{}", boolean),
+            LuaValue::Number(number) => write!(f, "{}", number),
+            LuaValue::String(string) => write!(f, "{}", string),
+            LuaValue::Table(table) => write!(f, "{}", table),
+        }
+    }
+}
+
+/** Enumeration of lua table key types. */
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum LuaKey {
     String(String),
     // Lua can hash other values but it is best to stick to Strings
 }
 
-// Rust representation of a Lua table
+impl fmt::Display for LuaKey {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            LuaKey::String(s) => write!(f, "{}", s)
+        }
+    }
+}
+
+/// Rust representation of a Lua table
 #[derive(Debug, Clone)]
 pub struct Table {
     array: Vec<LuaValue>,
@@ -63,38 +85,23 @@ impl Table {
     }
 }
 
-fn fmt_field(f: &mut fmt::Formatter, value: &LuaValue, depth: u64) -> fmt::Result {
-    for _ in 0..depth {
-        write!(f, "  ")?;
-    }
-    match value {
-        &LuaValue::Nil => write!(f, "nil")?,
-        &LuaValue::Boolean(boolean) => write!(f, "{}", boolean)?,
-        &LuaValue::Number(number) => write!(f, "{}", number)?,
-        &LuaValue::String(ref string) => write!(f, "{}", string)?,
-        &LuaValue::Table(ref table) => {
-            // TODO
-            write!(f, "table")?
-        },
-    };
-    if depth > 0 {
-        write!(f, "\n")?;
-    }
-    // TODO: Find better way to get Result
-    write!(f, "")
-}
-
 impl fmt::Display for Table {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{{")?; // write literal {
         for (index, value) in self.array.iter().enumerate() {
-            fmt_field(f, value, 0)?;
+            write!(f, "{}", value)?;
             if index < (self.array.len() - 1) {
-                write!(f, ",")?;
+                write!(f, ", ")?;
             }
         }
-        for value in &self.hash_map {
-            // TODO
+        if !self.array.is_empty() && !self.hash_map.is_empty() {
+            write!(f, ", ")?;
+        }
+        for (index, (key, value)) in self.hash_map.iter().enumerate() {
+            write!(f, "{}: {}", key, value)?;
+            if index < (self.hash_map.len() - 1) {
+                write!(f, ", ")?;
+            }
         }
         write!(f, "}}") // write literal }
     }
