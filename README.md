@@ -5,7 +5,7 @@
 **Rust2d** is a utility library that allows [Love2D](https://love2d.org/) (a popular Lua-based 2D game framework) to offload preformance critical code from Lua to Rust. By compiling Rust code as a DLL and calling it from Lua via LuaJIT’s FFI, Rust2d brings the speed and extensive crate ecosystem of Rust to your Lua games and applications.
 
 > **Why Rust?**  
-> Rust offers a modern language with a powerful package manager (Cargo), memory safety, and access to a huge ecosystem of libraries. By bridging Rust and Lua, you can write performance-critical code in Rust while keeping your game logic in Lua.
+> Rust offers a modern language with a powerful package manager (Cargo), memory safety, and access to a huge ecosystem of libraries. By bridging Rust and Lua, you can write preformance critical code in Rust while keeping your game logic in Lua.
 
 ---
 
@@ -45,38 +45,67 @@
 
 ## Getting Started
 
-1. **Clone the repository and build the Rust library:**
-   
-   - Open a terminal and run:
-     
-     ```
-     git clone https://github.com/Skeletonxf/rust2d.git
-     cd rust2d
-     ```
-   - Make sure your `Cargo.toml` has `[lib] crate-type = ["cdylib"]` for FFI compatibility.
-   - Build the Rust dynamic library in release mode:
-     
-     ```
-     cargo build --release
-     ```
-   - This will generate a dynamic library file (`loverust.dll` on Windows, `libloverust.so` on Linux, or `libloverust.dylib` on macOS) in `target/release/`.
+### 1. Clone the Repository
 
-2. **Copy the generated dynamic library** (`loverust.dll` on Windows, `libloverust.so` on Linux, `libloverust.dylib` on macOS) into your Love2D project directory.
-   
-   - Place the DLL/so/dylib file in the same folder as your `main.lua` or wherever your Love2D project expects to load native libraries.
-   - If you are using a custom project structure, ensure the path in your Lua FFI loader matches the location of the library file.
+```sh
+git clone https://github.com/Skeletonxf/rust2d.git
+cd rust2d
+```
 
-3. **Use the Lua modules** to call Rust functions from your Love2D game.
-   
-   - In your Lua code, require the provided Lua modules (e.g., `loverust.lua`, `arrays.lua`, `strings.lua`).
-   - These modules use LuaJIT's FFI to load and call functions from the Rust library.
-   - Example usage in `main.lua`:
-     
-     ```
-     local loverust = require 'loverust'
-     loverust.hello()
-     print(loverust.add_two_numbers(2, 3))
-     ```
+---
+
+### 2. Build and Run with the Automation Script
+
+- **Use the provided `run.sh` script** to build the Rust library and launch Love2D in one step:
+
+  ```sh
+  ./run.sh
+  ```
+
+  - This script:
+    - Compiles the Rust library in release mode using `cargo build --release`
+    - Detects your operating system and confirms the correct dynamic library (`.dll`, `.so`, or `.dylib`) is present in `./target/release/`.
+    - Launches Love2D, which is now ready to use your Rust modules.
+
+  - **Note:**  
+    If you are on non-WSL Windows, run this script from Git Bash or an MSYS2 Bash shell like **MingW64** for best compatibility. If you use PowerShell, invoke the script explicitly with `bash ./run.sh`.
+
+---
+
+### 3. How the Loader Works (`loverust.lua`)
+
+- The `loverust.lua` module **automatically detects your OS** and loads the correct dynamic library from `./target/release/`.
+- It includes **robust error handling**: if the library cannot be loaded, you’ll get a clear error message with troubleshooting tips.
+- No need to manually copy the dynamic library or modify paths unless you change the project structure, or are using an incompatible operating system.
+
+---
+
+### 4. Using Rust Functions in Lua
+
+- In your Love2D Lua code, require the Rust loader and modules as usual:
+
+  ```lua
+  local loverust = require 'loverust'
+  print(loverust.hello())
+  print(loverust.add_two_numbers(2, 3))
+  ```
+
+- The provided modules (`arrays.lua`, `strings.lua`, etc.) use LuaJIT FFI to call Rust functions seamlessly.
+
+---
+
+### 5. Troubleshooting
+
+- **If you see errors about missing libraries:**  
+  Ensure you have built the Rust code with `./run.sh` (or manually running `cargo build --release`) and are running the script from the project root.
+- **If `love` is not found:**  
+  Make sure Love2D is installed and its executable is in your system or environment PATH.
+
+---
+
+### **6. Custom Project Structures**
+
+- If you move the Rust dynamic library or change your project structure, then update the path in `loverust.lua` accordingly.
 
 ---
 
@@ -98,6 +127,5 @@ These resources were invaluable in creating Rust2d:
 
 ## License
 
-[MIT](LICENSE)
-
----
+This project is licensed under the [Mozilla Public License 2.0 (MPL 2.0)](https://www.mozilla.org/MPL/2.0/).
+See the [LICENSE](LICENSE) file for details.
