@@ -2,7 +2,7 @@
 
 # Rust2d
 
-**Rust2d** is a utility library that allows [Love2D](https://love2d.org/) (a popular Lua-based 2D game framework) to offload preformance critical code from Lua to Rust. By compiling Rust code as a DLL and calling it from Lua via LuaJIT’s FFI, Rust2d brings the speed and extensive crate ecosystem of Rust to your Lua games and applications.
+**Rust2d** is a utility template that allows [Love2D](https://love2d.org/) (a popular Lua-based 2D game framework) to offload preformance critical code from Lua to Rust. By compiling Rust code as a DLL and calling it from Lua via LuaJIT’s FFI, Rust2d brings the speed and extensive crate ecosystem of Rust to your Lua games and applications.
 
 > **Why Rust?**  
 > Rust offers a modern language with a powerful package manager (Cargo), memory safety, and access to a huge ecosystem of libraries. By bridging Rust and Lua, you can write preformance critical code in Rust while keeping your game logic in Lua.
@@ -75,7 +75,7 @@ cd rust2d
 ### 3. How the Loader Works (`loverust.lua`)
 
 - The `loverust.lua` module **automatically detects your OS** and loads the correct dynamic library from `./target/release/`.
-- It includes **robust error handling**: if the library cannot be loaded, you’ll get a clear error message with troubleshooting tips.
+- It includes **error handling**: if the library cannot be loaded, you’ll get a clear error message with troubleshooting tips.
 - No need to manually copy the dynamic library or modify paths unless you change the project structure, or are using an incompatible operating system.
 
 ---
