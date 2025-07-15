@@ -8,4 +8,4 @@ libc = "0.2"
 
 [lib]
 name = "loverust"
-crate-type = ["dylib"]
+crate-type = ["cdylib"]
