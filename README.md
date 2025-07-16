@@ -111,7 +111,7 @@ cd rust2d
 
 ## Contributing
 
-Contributions are welcome! 
+Contributions are welcome!
 
 ---
 
@@ -127,5 +127,9 @@ These resources were invaluable in creating Rust2d:
 
 ## License
 
-This project is licensed under the [Mozilla Public License 2.0 (MPL 2.0)](https://www.mozilla.org/MPL/2.0/).
-See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT license ([LICENSE](LICENSE) or https://opensource.org/license/MIT).
+See the license file for details.
+
+## Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you shall be licensed as above, without any additional terms or conditions.
